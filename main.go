@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	_ "image/jpeg"
-	_ "image/png"
+	"image/jpeg"
+	"image/png"
 	"log"
 	"os"
 	"reflect"
+	"strings"
 )
 
 var ASCIISTR = "MND8OZ$7I?+=~:,.."
@@ -68,17 +69,35 @@ func Convert2Ascii(img image.Image, w, h int) []byte {
 	return buf.Bytes()
 }
 
-func ConvertFomat(img image.Image, outputformat, inputformat, inputfilename string, w, h int) []byte {
-	buf := new(bytes.Buffer)
+// func ConvertFomat(img image.Image, outputformat, inputformat, inputfilename string, w, h int) error {
+func ConvertFomat(img image.Image, inputfilename, outputformat string) error {
 
-	// switch strings.ToLower(outputformat) {
-	// case ".png":
-	// 	err = png.Encode(df, img)
-	// case ".jpeg", ".jpg":
-	// 	err = jpeg.Encode(df, img, &jpeg.Options{jpeg.DefaultQuality})
-	// }
+	pos := strings.LastIndex(inputfilename, ".")
 
-	return buf.Bytes()
+	if _, err := os.Stat("out"); err != nil {
+		if err := os.Mkdir("out", 0755); err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	df, err := os.Create("out/" + inputfilename[:pos] + "." + outputformat)
+	if err != nil {
+		return fmt.Errorf("can't write images")
+	}
+	defer df.Close()
+
+	fmt.Println(outputformat)
+
+	switch strings.ToLower(outputformat) {
+	case "png":
+		err = png.Encode(df, img)
+		fmt.Println("png called")
+	case "jpeg", "jpg":
+		err = jpeg.Encode(df, img, &jpeg.Options{jpeg.DefaultQuality})
+		fmt.Println("jpg called")
+	}
+
+	return nil
 }
 
 func main() {
@@ -89,4 +108,9 @@ func main() {
 
 	p := Convert2Ascii(img, width, height)
 	fmt.Print(string(p))
+
+	ConvertFomat(img, inputfilename, outputformat)
 }
+
+// imgconv -out png ./
+// outディレクトリに変換後のimg
