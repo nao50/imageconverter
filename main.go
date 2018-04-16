@@ -15,28 +15,24 @@ import (
 
 var ASCIISTR = "MND8OZ$7I?+=~:,.."
 
-func Init() (image.Image, int, int, string, string) {
-	width := flag.Int("w", 30, "Use -w <width>")
-	height := flag.Int("h", 30, "Use -w <height>")
-	fpath := flag.String("input", "test.png", "Use -input <filesource>")
+func Init() (image.Image, string, int, int, string, string) {
+	// width := flag.Int("w", 30, "Use -w <width>")
+	// height := flag.Int("h", 30, "Use -w <height>")
+	inputfulename := flag.String("input", "test.png", "Use -input <filesource>")
 	outputformat := flag.String("out", "jpg", "Use -out <output file format>")
 	flag.Parse()
 
-	f, err := os.Open(*fpath)
+	f, err := os.Open(*inputfulename)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// buf := new(bytes.Buffer)
-	// io.Copy(buf, f)
-	// fmt.Println(buf)
 
 	img, _, err := image.Decode(f)
 	if err != nil {
 		panic(err)
 	}
 
-	f, err = os.Open(*fpath)
+	f, err = os.Open(*inputfulename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -52,7 +48,8 @@ func Init() (image.Image, int, int, string, string) {
 	fmt.Printf("INPUT Image Format: %v\n", encode)
 
 	defer f.Close()
-	return img, *width, *height, *outputformat, encode
+	// return img, *width, *height, *outputformat, encode
+	return img, *inputfulename, conf.Width, conf.Height, *outputformat, encode
 }
 
 func Convert2Ascii(img image.Image, w, h int) []byte {
@@ -78,7 +75,8 @@ func ConvertFomat(img image.Image, w, h int) []byte {
 }
 
 func main() {
-	img, width, height, outputformat, encode := Init()
+	img, inputfulename, width, height, outputformat, encode := Init()
+	fmt.Printf("inputfulename: %v\n", inputfulename)
 	fmt.Printf("inputformat: %v\n", encode)
 	fmt.Printf("outputformat: %v\n", outputformat)
 
