@@ -8,56 +8,23 @@ import (
 	"image/color"
 	"image/jpeg"
 	"image/png"
-	"log"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 )
 
-var ASCIISTR = "MND8OZ$7I?+=~:,.."
+var ASCIISTR = "MND80Z$7I?+=~:,.."
 
-func Init() (image.Image, string, int, int, string) {
-	inputfilename := flag.String("file", "test.png", "Use -file <filesource>")
-	outputformat := flag.String("out", "jpg", "Use -out <output file format>")
+func Init() error {
+	if len(os.Args) < 2 {
+		fmt.Errorf("usage")
+	}
+
+	outputformat := flag.String("outputformat", "png", "Use -outputformat <outputformat>")
 	flag.Parse()
 
-	f, err := os.Open(*inputfilename)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	img, _, err := image.Decode(f)
-	if err != nil {
-		panic(err)
-	}
-
-	f, err = os.Open(*inputfilename)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	conf, _, err := image.DecodeConfig(f)
-	if err != nil {
-		panic(err)
-	}
-
-	defer f.Close()
-
-	return img, *inputfilename, conf.Width, conf.Height, *outputformat
-}
-
-// func ConvertFomat(img image.Image, outputformat, inputformat, inputfilename string, w, h int) error {
-func ConvertFomat(img image.Image, inputfilename, outputformat string, w, h int) error {
-
-	file := strings.LastIndex(inputfilename, "/")
-	pos := strings.LastIndex(inputfilename[file+1:], ".")
-
-	a := inputfilename[file+1:]
-
-	fmt.Println(inputfilename[file+1:])
-	fmt.Println(a[:pos])
-
-	// pos := strings.LastIndex(inputfilename, ".")
+	imagedirectory := flag.Args()
 
 	if _, err := os.Stat("out"); err != nil {
 		if err := os.Mkdir("out", 0755); err != nil {
@@ -65,48 +32,78 @@ func ConvertFomat(img image.Image, inputfilename, outputformat string, w, h int)
 		}
 	}
 
-	df, err := os.Create("out/" + a[:pos] + "." + outputformat)
-	if err != nil {
-		return fmt.Errorf("can't write images")
-	}
-	defer df.Close()
-
-	switch strings.ToLower(outputformat) {
-	case "png":
-		err = png.Encode(df, img)
-		fmt.Println("png called")
-	case "jpeg", "jpg":
-		err = jpeg.Encode(df, img, &jpeg.Options{jpeg.DefaultQuality})
-		fmt.Println("jpg called")
-	case "ascii":
-		table := []byte(ASCIISTR)
-		buf := new(bytes.Buffer)
-
-		for i := 0; i < h; i++ {
-			for j := 0; j < w; j++ {
-				g := color.GrayModel.Convert(img.At(j, i))
-				y := reflect.ValueOf(g).FieldByName("Y").Uint()
-				pos := int(y * 16 / 255)
-				_ = buf.WriteByte(table[pos])
-			}
-			_ = buf.WriteByte('\n')
+	err := filepath.Walk(imagedirectory[0], func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
 		}
-		fmt.Print(string(buf.Bytes()))
+		if !info.IsDir() {
+			f, err := os.Open(imagedirectory[0] + "/" + info.Name())
+			if err != nil {
+				panic(err)
+			}
+
+			img, _, err := image.Decode(f)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			f, err = os.Open(imagedirectory[0] + "/" + info.Name())
+			if err != nil {
+				panic(err)
+			}
+
+			conf, _, err := image.DecodeConfig(f)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			pos := strings.LastIndex(info.Name(), ".")
+			// fmt.Println("pos: ", info.Name()[:pos])
+			dest, err := os.Create("out/" + info.Name()[:pos] + "." + *outputformat)
+			if err != nil {
+				fmt.Println("error")
+			}
+
+			switch strings.ToLower(*outputformat) {
+			case "png":
+				err = png.Encode(dest, img)
+			case "jpg", "jpeg":
+				err = jpeg.Encode(dest, img, &jpeg.Options{jpeg.DefaultQuality})
+			case "ascii":
+				table := []byte(ASCIISTR)
+				buf := new(bytes.Buffer)
+
+				for i := 0; i < conf.Height; i++ {
+					for j := 0; j < conf.Width; j++ {
+						g := color.GrayModel.Convert(img.At(j, i))
+						y := reflect.ValueOf(g).FieldByName("Y").Uint()
+						pos := int(y * 16 / 255)
+						err = buf.WriteByte(table[pos])
+						if err != nil {
+							panic(err)
+						}
+					}
+					_ = buf.WriteByte('\n')
+				}
+				fmt.Print(string(buf.Bytes()))
+				_, err = dest.WriteString(string(buf.Bytes()))
+				if err != nil {
+					panic(err)
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		fmt.Println("Error on filepath.Walk : ", err)
 	}
 
 	return nil
 }
 
 func main() {
-	img, inputfilename, width, height, outputformat := Init()
-	fmt.Printf("inputfilename: %v\n", inputfilename)
-	fmt.Printf("outputformat: %v\n", outputformat)
-
-	// p := Convert2Ascii(img, width, height)
-	// fmt.Print(string(p))
-
-	ConvertFomat(img, inputfilename, outputformat, width, height)
+	if err := Init(); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		os.Exit(1)
+	}
 }
-
-// imgconv -out png ./
-// outディレクトリに変換後のimg
