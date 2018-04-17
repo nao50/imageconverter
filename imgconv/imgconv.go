@@ -1,3 +1,5 @@
+// Package imgconv provides some simple image convert function.
+// These are sample functions to practice golang.
 package imgconv
 
 import (
@@ -58,7 +60,6 @@ func Imgconv() error {
 			}
 
 			pos := strings.LastIndex(info.Name(), ".")
-			// fmt.Println("pos: ", info.Name()[:pos])
 			dest, err := os.Create("out/" + info.Name()[:pos] + "." + *outputformat)
 			if err != nil {
 				fmt.Println("error")
