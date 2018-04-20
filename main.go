@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"./imgconv"
+	"github.com/naoyamaguchi/imageconverter/imgconv"
 )
 
 func main() {
