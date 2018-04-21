@@ -3,101 +3,85 @@
 package imgconv
 
 import (
-	"bytes"
-	"flag"
+	"errors"
 	"fmt"
 	"image"
-	"image/color"
 	"image/jpeg"
 	"image/png"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 )
 
-var ASCIISTR = "MND80Z$7I?+=~:,.."
+func NewImages(srcDir string) ([]string, []image.Image, error) {
+	var filename []string
+	var img image.Image
+	var imglist []image.Image
 
-func Imgconv() error {
-	if len(os.Args) < 2 {
-		fmt.Errorf("usage")
+	err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			return nil
+		}
+
+		filename = append(filename, strings.TrimSuffix(path, filepath.Ext(path)))
+		img, err = getImg(path)
+		if err != nil {
+			return err
+		}
+		imglist = append(imglist, img)
+
+		return nil
+	})
+
+	return filename, imglist, err
+}
+
+func getImg(path string) (image.Image, error) {
+	file, err := os.Open(path)
+	defer file.Close()
+	if err != nil {
+		return nil, err
 	}
 
-	outputformat := flag.String("outputformat", "png", "Use -outputformat <outputformat>")
-	flag.Parse()
+	img, _, err := image.Decode(file)
+	if err != nil {
+		return nil, err
+	}
+	return img, nil
+}
 
-	imagedirectory := flag.Args()
-
+func Imgconv2(outType string, filename []string, img []image.Image) error {
 	if _, err := os.Stat("out"); err != nil {
 		if err := os.Mkdir("out", 0755); err != nil {
 			fmt.Println(err)
 		}
 	}
 
-	err := filepath.Walk(imagedirectory[0], func(path string, info os.FileInfo, err error) error {
+	for _, filename := range filename {
+		pos := strings.LastIndex(filename, "/")
+		out, err := os.Create("out/" + filename[pos+1:] + "." + outType)
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() {
-			f, err := os.Open(imagedirectory[0] + "/" + info.Name())
-			if err != nil {
-				panic(err)
-			}
-
-			img, _, err := image.Decode(f)
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			f, err = os.Open(imagedirectory[0] + "/" + info.Name())
-			if err != nil {
-				panic(err)
-			}
-
-			conf, _, err := image.DecodeConfig(f)
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			pos := strings.LastIndex(info.Name(), ".")
-			dest, err := os.Create("out/" + info.Name()[:pos] + "." + *outputformat)
-			if err != nil {
-				fmt.Println("error")
-			}
-
-			switch strings.ToLower(*outputformat) {
-			case "png":
-				err = png.Encode(dest, img)
-			case "jpg", "jpeg":
-				err = jpeg.Encode(dest, img, &jpeg.Options{jpeg.DefaultQuality})
-			case "ascii":
-				table := []byte(ASCIISTR)
-				buf := new(bytes.Buffer)
-
-				for i := 0; i < conf.Height; i++ {
-					for j := 0; j < conf.Width; j++ {
-						g := color.GrayModel.Convert(img.At(j, i))
-						y := reflect.ValueOf(g).FieldByName("Y").Uint()
-						pos := int(y * 16 / 255)
-						err = buf.WriteByte(table[pos])
-						if err != nil {
-							panic(err)
-						}
-					}
-					_ = buf.WriteByte('\n')
-				}
-				fmt.Print(string(buf.Bytes()))
-				_, err = dest.WriteString(string(buf.Bytes()))
+		switch outType {
+		case "jpeg", "jpg":
+			for _, img := range img {
+				err = jpeg.Encode(out, img, nil)
 				if err != nil {
-					panic(err)
+					return err
 				}
 			}
+		case "png":
+			for _, img := range img {
+				err = png.Encode(out, img)
+				if err != nil {
+					return err
+				}
+			}
+		default:
+			return errors.New("sorry. not support this outType extend")
 		}
-		return nil
-	})
-	if err != nil {
-		fmt.Println("Error on filepath.Walk : ", err)
-	}
 
+	}
 	return nil
 }
