@@ -13,6 +13,14 @@ import (
 	"strings"
 )
 
+func test(s string) string {
+	return s
+}
+
+func sum(a, b int) int {
+	return a + b
+}
+
 func NewImages(srcDir string) ([]string, []image.Image, error) {
 	var filename []string
 	var img image.Image
