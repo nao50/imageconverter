@@ -18,7 +18,10 @@ func ImgConv(i Imageconverter, srcdir, outputfiletype string) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	i.ConvertImage(outputfiletype, imagefilelist)
+	err = i.ConvertImage(outputfiletype, imagefilelist)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 type Imageconverter interface {
