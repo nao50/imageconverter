@@ -13,14 +13,6 @@ import (
 	"strings"
 )
 
-func test(s string) string {
-	return s
-}
-
-func sum(a, b int) int {
-	return a + b
-}
-
 func NewImages(srcDir string) ([]string, []image.Image, error) {
 	var filename []string
 	var img image.Image
@@ -58,7 +50,7 @@ func getImg(path string) (image.Image, error) {
 	return img, nil
 }
 
-func Imgconv2(outType string, filename []string, img []image.Image) error {
+func Imgconv(outType string, filename []string, img []image.Image) error {
 	if _, err := os.Stat("out"); err != nil {
 		if err := os.Mkdir("out", 0755); err != nil {
 			fmt.Println(err)

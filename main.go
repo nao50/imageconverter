@@ -26,7 +26,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := imgconv.Imgconv2(outType, filepath, image); err != nil {
+	if err := imgconv.Imgconv(outType, filepath, image); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 		os.Exit(1)
 	}
