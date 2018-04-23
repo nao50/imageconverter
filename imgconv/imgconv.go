@@ -13,6 +13,64 @@ import (
 	"strings"
 )
 
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+func ImgConv(i Imageconverter, srcdir string) {
+	fmt.Println(i.GetImage(srcdir))
+}
+
+type Imageconverter interface {
+	GetImage(srcdir string) (Imagefile, error)
+	ConvertImage(outputfiletype string, imagefile Imagefile) error
+}
+
+type Imagefile struct {
+	image         image.Image
+	imagefilepath string
+	imagefilename string
+	imagefiletype string
+}
+
+func (i *Imagefile) GetImage(srcdir string) (Imagefile, error) {
+	imagefile := Imagefile{}
+	err := filepath.Walk(srcdir, func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			return nil
+		}
+		// Get imagefilename
+		filename := strings.TrimSuffix(path, filepath.Ext(path))
+		fmt.Println("filename: ", filename)
+		// Get imagefiletype
+		pos := strings.LastIndex(filename, "/")
+		filetype := filename[pos:]
+		fmt.Println("filetype: ", filetype)
+		// GEt image
+		img, err := getImg(path)
+		if err != nil {
+			return err
+		}
+		imagefile = Imagefile{
+			image:         img,
+			imagefilepath: path,
+			imagefilename: filename,
+			imagefiletype: filetype,
+		}
+		fmt.Printf("imagefile: %v \n", imagefile)
+		return nil
+	})
+	// fmt.Println("imagefile: ", imagefile)
+	return imagefile, err
+}
+
+func (i *Imagefile) ConvertImage(outputfiletype string, imagefile Imagefile) error {
+	return nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 func NewImages(srcDir string) ([]string, []image.Image, error) {
 	var filename []string
 	var img image.Image

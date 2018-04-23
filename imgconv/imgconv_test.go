@@ -2,6 +2,7 @@ package imgconv
 
 import (
 	"log"
+	"os"
 	"testing"
 )
 
@@ -21,6 +22,8 @@ func TestNewImages(t *testing.T) {
 
 func TestImgconv(t *testing.T) {
 	t.Helper()
+	dir, _ := os.Getwd()
+	println(dir)
 
 	filepath, image, err := NewImages("../images")
 	if err != nil {
@@ -40,5 +43,9 @@ func TestImgconv(t *testing.T) {
 		if err != nil {
 			t.Fatal("fail error func test")
 		}
+		// _, err := os.Stat(filepath[0] + c.outtype)
+		// if err != nil {
+		// 	t.Fatal("fail error func test")
+		// }
 	}
 }

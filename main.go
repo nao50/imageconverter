@@ -2,9 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"log"
-	"os"
 
 	"github.com/naoyamaguchi/imageconverter/imgconv"
 )
@@ -21,14 +18,17 @@ func main() {
 	flag.Parse()
 	srcDir = flag.Arg(0)
 
-	filepath, image, err := imgconv.NewImages(srcDir)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// filepath, image, err := imgconv.NewImages(srcDir)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	if err := imgconv.Imgconv(outType, filepath, image); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
-		os.Exit(1)
-	}
+	// if err := imgconv.Imgconv(outType, filepath, image); err != nil {
+	// 	fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+	// 	os.Exit(1)
+	// }
 
+	i := &imgconv.Imagefile{}
+	// fmt.Println(i)
+	imgconv.ImgConv(i, srcDir)
 }
