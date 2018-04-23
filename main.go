@@ -29,6 +29,6 @@ func main() {
 	// }
 
 	i := &imgconv.Imagefile{}
-	// fmt.Println(i)
+	// fmt.Println("i: ", i)
 	imgconv.ImgConv(i, srcDir)
 }

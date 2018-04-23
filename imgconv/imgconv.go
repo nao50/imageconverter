@@ -22,30 +22,32 @@ func ImgConv(i Imageconverter, srcdir string) {
 }
 
 type Imageconverter interface {
-	GetImage(srcdir string) (Imagefile, error)
+	GetImage(srcdir string) ([]Imagefile, error)
 	ConvertImage(outputfiletype string, imagefile Imagefile) error
 }
 
 type Imagefile struct {
 	image         image.Image
 	imagefilepath string
-	imagefilename string
-	imagefiletype string
+	// imagefilename string
+	// imagefiletype string
 }
 
-func (i *Imagefile) GetImage(srcdir string) (Imagefile, error) {
+func (i *Imagefile) GetImage(srcdir string) ([]Imagefile, error) {
 	imagefile := Imagefile{}
+	imagefilelist := []Imagefile{}
+
 	err := filepath.Walk(srcdir, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil
 		}
-		// Get imagefilename
-		filename := strings.TrimSuffix(path, filepath.Ext(path))
-		fmt.Println("filename: ", filename)
-		// Get imagefiletype
-		pos := strings.LastIndex(filename, "/")
-		filetype := filename[pos:]
-		fmt.Println("filetype: ", filetype)
+		// // Get imagefilename
+		// filename := strings.TrimSuffix(path, filepath.Ext(path))
+		// fmt.Println("filename: ", filename)
+		// // Get imagefiletype
+		// pos := strings.LastIndex(filename, "/")
+		// filetype := filename[pos:]
+		// fmt.Println("filetype: ", filetype)
 		// GEt image
 		img, err := getImg(path)
 		if err != nil {
@@ -54,14 +56,15 @@ func (i *Imagefile) GetImage(srcdir string) (Imagefile, error) {
 		imagefile = Imagefile{
 			image:         img,
 			imagefilepath: path,
-			imagefilename: filename,
-			imagefiletype: filetype,
+			// imagefilename: filename,
+			// imagefiletype: filetype,
 		}
-		fmt.Printf("imagefile: %v \n", imagefile)
+		// fmt.Printf("imagefile: %v \n", imagefile)
+		imagefilelist = append(imagefilelist, imagefile)
 		return nil
 	})
-	// fmt.Println("imagefile: ", imagefile)
-	return imagefile, err
+	// fmt.Printf("imagefile summry: %v \n", imagefilelist)
+	return imagefilelist, err
 }
 
 func (i *Imagefile) ConvertImage(outputfiletype string, imagefile Imagefile) error {
