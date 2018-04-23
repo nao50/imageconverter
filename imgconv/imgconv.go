@@ -13,24 +13,22 @@ import (
 	"strings"
 )
 
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-func ImgConv(i Imageconverter, srcdir string) {
-	fmt.Println(i.GetImage(srcdir))
+func ImgConv(i Imageconverter, srcdir, outputfiletype string) {
+	imagefilelist, err := i.GetImage(srcdir)
+	if err != nil {
+		fmt.Println(err)
+	}
+	i.ConvertImage(outputfiletype, imagefilelist)
 }
 
 type Imageconverter interface {
 	GetImage(srcdir string) ([]Imagefile, error)
-	ConvertImage(outputfiletype string, imagefile Imagefile) error
+	ConvertImage(outputfiletype string, imagefile []Imagefile) error
 }
 
 type Imagefile struct {
 	image         image.Image
 	imagefilepath string
-	// imagefilename string
-	// imagefiletype string
 }
 
 func (i *Imagefile) GetImage(srcdir string) ([]Imagefile, error) {
@@ -41,13 +39,7 @@ func (i *Imagefile) GetImage(srcdir string) ([]Imagefile, error) {
 		if info.IsDir() {
 			return nil
 		}
-		// // Get imagefilename
-		// filename := strings.TrimSuffix(path, filepath.Ext(path))
-		// fmt.Println("filename: ", filename)
-		// // Get imagefiletype
-		// pos := strings.LastIndex(filename, "/")
-		// filetype := filename[pos:]
-		// fmt.Println("filetype: ", filetype)
+
 		// GEt image
 		img, err := getImg(path)
 		if err != nil {
@@ -56,47 +48,48 @@ func (i *Imagefile) GetImage(srcdir string) ([]Imagefile, error) {
 		imagefile = Imagefile{
 			image:         img,
 			imagefilepath: path,
-			// imagefilename: filename,
-			// imagefiletype: filetype,
 		}
-		// fmt.Printf("imagefile: %v \n", imagefile)
 		imagefilelist = append(imagefilelist, imagefile)
 		return nil
 	})
-	// fmt.Printf("imagefile summry: %v \n", imagefilelist)
+	fmt.Printf("imagefile summry: %v \n", imagefilelist[0].imagefilepath)
 	return imagefilelist, err
 }
 
-func (i *Imagefile) ConvertImage(outputfiletype string, imagefile Imagefile) error {
-	return nil
-}
-
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-func NewImages(srcDir string) ([]string, []image.Image, error) {
-	var filename []string
-	var img image.Image
-	var imglist []image.Image
-
-	err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() {
-			return nil
+func (i *Imagefile) ConvertImage(outputfiletype string, imagefile []Imagefile) error {
+	if _, err := os.Stat("out"); err != nil {
+		if err := os.Mkdir("out", 0755); err != nil {
+			fmt.Println(err)
 		}
+	}
 
-		filename = append(filename, strings.TrimSuffix(path, filepath.Ext(path)))
-		img, err = getImg(path)
+	for _, imagefile := range imagefile {
+		f_pos := strings.LastIndex(imagefile.imagefilepath, "/")
+		p_pos := strings.LastIndex(imagefile.imagefilepath, ".")
+		out, err := os.Create("out/" + imagefile.imagefilepath[f_pos+1:p_pos] + "." + outputfiletype)
 		if err != nil {
 			return err
 		}
-		imglist = append(imglist, img)
+		switch outputfiletype {
+		case "jpeg", "jpg":
+			err = jpeg.Encode(out, imagefile.image, nil)
+			if err != nil {
+				return err
+			}
+		case "png":
+			err = png.Encode(out, imagefile.image)
+			if err != nil {
+				return err
+			}
+		default:
+			return errors.New("sorry. not support this outputfiletype extend")
+		}
+	}
+	return nil
 
-		return nil
-	})
-
-	return filename, imglist, err
 }
 
+////////////////////////////////////////////////////////////////////////////////
 func getImg(path string) (image.Image, error) {
 	file, err := os.Open(path)
 	defer file.Close()
@@ -109,40 +102,4 @@ func getImg(path string) (image.Image, error) {
 		return nil, err
 	}
 	return img, nil
-}
-
-func Imgconv(outType string, filename []string, img []image.Image) error {
-	if _, err := os.Stat("out"); err != nil {
-		if err := os.Mkdir("out", 0755); err != nil {
-			fmt.Println(err)
-		}
-	}
-
-	for _, filename := range filename {
-		pos := strings.LastIndex(filename, "/")
-		out, err := os.Create("out/" + filename[pos+1:] + "." + outType)
-		if err != nil {
-			return err
-		}
-		switch outType {
-		case "jpeg", "jpg":
-			for _, img := range img {
-				err = jpeg.Encode(out, img, nil)
-				if err != nil {
-					return err
-				}
-			}
-		case "png":
-			for _, img := range img {
-				err = png.Encode(out, img)
-				if err != nil {
-					return err
-				}
-			}
-		default:
-			return errors.New("sorry. not support this outType extend")
-		}
-
-	}
-	return nil
 }
