@@ -54,7 +54,7 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">github.com/naoyamaguchi/imageconverter/imgconv/imgconv.go (70.0%)</option>
+				<option value="file0">github.com/naoyamaguchi/imageconverter/imgconv/imgconv.go (75.0%)</option>
 				
 				</select>
 			</div>
@@ -83,29 +83,92 @@ import (
         "strings"
 )
 
-func NewImages(srcDir string) ([]string, []image.Image, error) <span class="cov8" title="1">{
-        var filename []string
-        var img image.Image
-        var imglist []image.Image
+func ImgConv(i Imageconverter, srcdir, outputfiletype string) <span class="cov8" title="1">{
+        imagefilelist, err := i.GetImage(srcdir)
+        if err != nil </span><span class="cov0" title="0">{
+                fmt.Println(err)
+        }</span>
+        <span class="cov8" title="1">err = i.ConvertImage(outputfiletype, imagefilelist)
+        if err != nil </span><span class="cov0" title="0">{
+                fmt.Println(err)
+        }</span>
+}
 
-        err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error </span><span class="cov8" title="1">{
+type Imageconverter interface {
+        GetImage(srcdir string) ([]Imagefile, error)
+        ConvertImage(outputfiletype string, imagefile []Imagefile) error
+}
+
+type Imagefile struct {
+        image         image.Image
+        imagefilepath string
+}
+
+func (i *Imagefile) GetImage(srcdir string) ([]Imagefile, error) <span class="cov8" title="1">{
+        // imagefile := Imagefile{}
+        imagefilelist := []Imagefile{}
+
+        err := filepath.Walk(srcdir, func(path string, info os.FileInfo, err error) error </span><span class="cov8" title="1">{
                 if info.IsDir() </span><span class="cov8" title="1">{
                         return nil
                 }</span>
 
-                <span class="cov8" title="1">filename = append(filename, strings.TrimSuffix(path, filepath.Ext(path)))
-                img, err = getImg(path)
+                // GEt image
+                <span class="cov8" title="1">img, err := getImg(path)
                 if err != nil </span><span class="cov0" title="0">{
                         return err
                 }</span>
-                <span class="cov8" title="1">imglist = append(imglist, img)
+                // imagefile = Imagefile{
+                //         image:         img,
+                //         imagefilepath: path,
+                // }
+                // imagefilelist = append(imagefilelist, imagefile)
+
+                <span class="cov8" title="1">i.image = img
+                i.imagefilepath = path
+                // fmt.Printf("i: %v\n", *i)
+
+                imagefilelist = append(imagefilelist, *i)
 
                 return nil</span>
         })
-
-        <span class="cov8" title="1">return filename, imglist, err</span>
+        <span class="cov8" title="1">return imagefilelist, err</span>
 }
 
+func (i *Imagefile) ConvertImage(outputfiletype string, imagefile []Imagefile) error <span class="cov8" title="1">{
+        if _, err := os.Stat("out"); err != nil </span><span class="cov0" title="0">{
+                if err := os.Mkdir("out", 0755); err != nil </span><span class="cov0" title="0">{
+                        fmt.Println(err)
+                }</span>
+        }
+
+        <span class="cov8" title="1">for _, imagefile := range imagefile </span><span class="cov8" title="1">{
+                f_pos := strings.LastIndex(imagefile.imagefilepath, "/")
+                p_pos := strings.LastIndex(imagefile.imagefilepath, ".")
+                out, err := os.Create("out/" + imagefile.imagefilepath[f_pos+1:p_pos] + "." + outputfiletype)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">switch outputfiletype </span>{
+                case "jpeg", "jpg":<span class="cov8" title="1">
+                        err = jpeg.Encode(out, imagefile.image, nil)
+                        if err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+                case "png":<span class="cov8" title="1">
+                        err = png.Encode(out, imagefile.image)
+                        if err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+                default:<span class="cov0" title="0">
+                        return errors.New("sorry. not support this outputfiletype extend")</span>
+                }
+        }
+        <span class="cov8" title="1">return nil</span>
+
+}
+
+////////////////////////////////////////////////////////////////////////////////
 func getImg(path string) (image.Image, error) <span class="cov8" title="1">{
         file, err := os.Open(path)
         defer file.Close()
@@ -118,42 +181,6 @@ func getImg(path string) (image.Image, error) <span class="cov8" title="1">{
                 return nil, err
         }</span>
         <span class="cov8" title="1">return img, nil</span>
-}
-
-func Imgconv(outType string, filename []string, img []image.Image) error <span class="cov8" title="1">{
-        if _, err := os.Stat("out"); err != nil </span><span class="cov0" title="0">{
-                if err := os.Mkdir("out", 0755); err != nil </span><span class="cov0" title="0">{
-                        fmt.Println(err)
-                }</span>
-        }
-
-        <span class="cov8" title="1">for _, filename := range filename </span><span class="cov8" title="1">{
-                pos := strings.LastIndex(filename, "/")
-                out, err := os.Create("out/" + filename[pos+1:] + "." + outType)
-                if err != nil </span><span class="cov0" title="0">{
-                        return err
-                }</span>
-                <span class="cov8" title="1">switch outType </span>{
-                case "jpeg", "jpg":<span class="cov8" title="1">
-                        for _, img := range img </span><span class="cov8" title="1">{
-                                err = jpeg.Encode(out, img, nil)
-                                if err != nil </span><span class="cov0" title="0">{
-                                        return err
-                                }</span>
-                        }
-                case "png":<span class="cov0" title="0">
-                        for _, img := range img </span><span class="cov0" title="0">{
-                                err = png.Encode(out, img)
-                                if err != nil </span><span class="cov0" title="0">{
-                                        return err
-                                }</span>
-                        }
-                default:<span class="cov0" title="0">
-                        return errors.New("sorry. not support this outType extend")</span>
-                }
-
-        }
-        <span class="cov8" title="1">return nil</span>
 }
 </pre>
 		
