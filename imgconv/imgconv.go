@@ -35,7 +35,6 @@ type Imagefile struct {
 }
 
 func (i *Imagefile) GetImage(srcdir string) ([]Imagefile, error) {
-	// imagefile := Imagefile{}
 	imagefilelist := []Imagefile{}
 
 	err := filepath.Walk(srcdir, func(path string, info os.FileInfo, err error) error {
@@ -48,16 +47,9 @@ func (i *Imagefile) GetImage(srcdir string) ([]Imagefile, error) {
 		if err != nil {
 			return err
 		}
-		// imagefile = Imagefile{
-		// 	image:         img,
-		// 	imagefilepath: path,
-		// }
-		// imagefilelist = append(imagefilelist, imagefile)
 
 		i.image = img
 		i.imagefilepath = path
-		// fmt.Printf("i: %v\n", *i)
-
 		imagefilelist = append(imagefilelist, *i)
 
 		return nil
@@ -98,7 +90,6 @@ func (i *Imagefile) ConvertImage(outputfiletype string, imagefile []Imagefile) e
 
 }
 
-////////////////////////////////////////////////////////////////////////////////
 func getImg(path string) (image.Image, error) {
 	file, err := os.Open(path)
 	defer file.Close()
